@@ -1,821 +1,680 @@
-import React, { useState, useRef } from 'react';
-import { Upload, Download, FileText, MapPin, Calendar, Users, DollarSign, Settings, Eye, Check } from 'lucide-react';
-import * as mammoth from 'mammoth';
-
-const TravelQuotationSystem = () => {
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [extractedData, setExtractedData] = useState(null);
-  const [companyLogo, setCompanyLogo] = useState(null);
-  const [markupPercentage, setMarkupPercentage] = useState(15);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
-  const fileInputRef = useRef(null);
-  const logoInputRef = useRef(null);
-
-  // Sample company data - you can customize this
-  const companyData = {
-    name: "DreamScape Journey",
-    tagline: "Creating Unforgettable Travel Experiences",
-    address: "123 Travel Street, Hyderabad, Telangana 500001",
-    phone: "+91 9876543210",
-    email: "info@dreamscapejourney.com",
-    website: "www.dreamscapejourney.com"
-  };
-
-  // Sample policies
-  const policies = {
-    payment: [
-      "25% advance payment required at the time of booking",
-      "75% balance payment to be made 15 days before departure",
-      "Full payment required for bookings made within 15 days of departure",
-      "All payments are non-refundable and non-transferable"
-    ],
-    cancellation: [
-      "More than 30 days: 10% of total cost",
-      "15-30 days: 25% of total cost", 
-      "7-15 days: 50% of total cost",
-      "Less than 7 days: 100% of total cost"
-    ],
-    terms: [
-      "Prices are subject to availability and confirmation",
-      "Package rates are per person on twin sharing basis",
-      "Additional charges may apply for peak season travel",
-      "Travel insurance is highly recommended"
-    ]
-  };
-
-  const parseExtractedText = (text) => {
-    // Enhanced parsing function to extract data from actual DMC quotation text
-    const lines = text.split('\n').filter(line => line.trim().length > 0);
-    
-    // Initialize data structure
-    const parsedData = {
-      destination: '',
-      duration: '',
-      pax: '',
-      startDate: '',
-      endDate: '',
-      hotels: [],
-      inclusions: [],
-      exclusions: [],
-      itinerary: [],
-      baseCost: 0,
-      costBreakdown: []
-    };
-
-    // Enhanced keywords for better extraction
-    const keywords = {
-      destination: ['destination', 'location', 'place', 'city', 'tour to', 'package for', 'trip to', 'visit to'],
-      duration: ['days', 'nights', 'duration', 'period', 'day', 'night'],
-      pax: ['pax', 'persons', 'adults', 'children', 'people', 'guest', 'traveler', 'passenger'],
-      cost: ['cost', 'price', 'amount', 'total', 'rs', '₹', 'inr', 'rate', 'fare', 'charges'],
-      hotel: ['hotel', 'resort', 'accommodation', 'stay', 'lodge', 'inn', 'property'],
-      inclusion: ['inclusion', 'includes', 'included', 'covering', 'cover', 'comprise'],
-      exclusion: ['exclusion', 'excludes', 'excluded', 'not included', 'not cover', 'extra'],
-      itinerary: ['itinerary', 'day', 'schedule', 'program', 'plan', 'tour plan']
-    };
-
-    let currentSection = '';
-    let currentDay = 0;
-    
-    console.log('=== PARSING LINE BY LINE ===');
-
-    lines.forEach((line, index) => {
-      const lowerLine = line.toLowerCase();
-      const trimmedLine = line.trim();
-      
-      console.log(`Line ${index + 1}: ${trimmedLine}`);
-
-      // Extract destination - improved pattern matching
-      if (!parsedData.destination) {
-        const destPatterns = [
-          /(?:destination|location|place|tour\s+to|package\s+for|trip\s+to)[:\s-]+([^,\n\r]+)/i,
-          /^([A-Za-z\s]+(?:island|beach|hill|city|state|country|resort|palace|fort|temple))/i,
-          /([A-Za-z\s]{5,30})(?:\s+tour|\s+package|\s+trip)/i
-        ];
-        
-        for (const pattern of destPatterns) {
-          const match = trimmedLine.match(pattern);
-          if (match && match[1]) {
-            parsedData.destination = match[1].trim();
-            console.log(`Found destination: ${parsedData.destination}`);
-            break;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Quotation System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/lucide-react@0.395.0/dist/umd/lucide-react.js"></script>
+    <script src="https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://unpkg.com/pdfjs-dist@4.3.136/build/pdf.min.mjs" type="module"></script>
+    <script type="importmap">
+        {
+          "imports": {
+            "pdfjs-dist/build/pdf.min.mjs": "https://unpkg.com/pdfjs-dist@4.3.136/build/pdf.min.mjs"
           }
         }
-      }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-white to-purple-50">
 
-      // Extract duration - improved pattern matching
-      if (!parsedData.duration) {
-        const durationPatterns = [
-          /(\d+)\s*(?:days?)\s*[\/&-]\s*(\d+)\s*(?:nights?)/i,
-          /(\d+)\s*(?:days?)/i,
-          /(\d+)\s*(?:nights?)/i
-        ];
-        
-        for (const pattern of durationPatterns) {
-          const match = trimmedLine.match(pattern);
-          if (match) {
-            if (match[2]) {
-              parsedData.duration = `${match[1]} Days ${match[2]} Nights`;
-            } else {
-              const days = parseInt(match[1]);
-              if (days > 1) {
-                parsedData.duration = `${days} Days ${days-1} Nights`;
-              }
-            }
-            console.log(`Found duration: ${parsedData.duration}`);
-            break;
-          }
-        }
-      }
+<div id="root"></div>
 
-      // Extract pax - improved pattern matching
-      if (!parsedData.pax) {
-        const paxPatterns = [
-          /(\d+)\s*(?:pax|persons?|adults?|guests?|travelers?|passengers?)/i,
-          /(?:for|pax)[:\s]*(\d+)/i
-        ];
-        
-        for (const pattern of paxPatterns) {
-          const match = trimmedLine.match(pattern);
-          if (match && match[1]) {
-            const count = parseInt(match[1]);
-            parsedData.pax = `${count} Adult${count > 1 ? 's' : ''}`;
-            console.log(`Found pax: ${parsedData.pax}`);
-            break;
-          }
-        }
-      }
+<script type="text/javascript">
+    const { useState, useRef, useEffect } = React;
+    const { createRoot } = ReactDOM;
+    const { Upload, Download, FileText, MapPin, Calendar, Users, DollarSign, Settings, Eye, Check, Edit } = LucideReact;
 
-      // Extract cost - improved pattern matching
-      const costPatterns = [
-        /(?:total|cost|price|amount|rate|fare)[:\s]*(?:rs\.?|₹|inr)?\s*(\d{1,2}(?:,\d{2,3})*(?:\.\d{2})?)/i,
-        /(?:rs\.?|₹|inr)\s*(\d{1,2}(?:,\d{2,3})*(?:\.\d{2})?)/i,
-        /(\d{1,2}(?:,\d{2,3})*(?:\.\d{2})?)\s*(?:rs\.?|₹|inr)/i
-      ];
-      
-      for (const pattern of costPatterns) {
-        const match = trimmedLine.match(pattern);
-        if (match && match[1]) {
-          const cost = parseInt(match[1].replace(/,/g, ''));
-          if (cost > 1000 && cost > parsedData.baseCost) { // Only consider costs above 1000
-            parsedData.baseCost = cost;
-            console.log(`Found cost: ${cost}`);
-          }
-        }
-      }
+    const TravelQuotationSystem = () => {
+        const [uploadedFile, setUploadedFile] = useState(null);
+        const [extractedData, setExtractedData] = useState(null);
+        const [companyLogo, setCompanyLogo] = useState(null);
+        const [markupPercentage, setMarkupPercentage] = useState(15);
+        const [isProcessing, setIsProcessing] = useState(false);
+        const [currentStep, setCurrentStep] = useState(1);
+        const fileInputRef = useRef(null);
+        const logoInputRef = useRef(null);
+        const [isEditing, setIsEditing] = useState(false);
 
-      // Extract hotels - improved pattern matching
-      const hotelPatterns = [
-        /(?:hotel|resort|accommodation|stay|lodge)[:\s]+([^,\n\r]+)/i,
-        /^([A-Za-z\s]+(?:hotel|resort|lodge|inn|palace|heritage|grand))/i
-      ];
-      
-      for (const pattern of hotelPatterns) {
-        const match = trimmedLine.match(pattern);
-        if (match && match[1]) {
-          const hotelName = match[1].trim();
-          if (hotelName.length > 3 && !parsedData.hotels.find(h => h.name === hotelName)) {
-            parsedData.hotels.push({
-              name: hotelName,
-              location: parsedData.destination || 'Location TBD',
-              nights: 2,
-              roomType: 'Standard Room'
+        const companyData = {
+            name: "DreamScape Journey",
+            tagline: "Creating Unforgettable Travel Experiences",
+            address: "123 Travel Street, Hyderabad, Telangana 500001",
+            phone: "+91 9876543210",
+            email: "info@dreamscapejourney.com",
+            website: "www.dreamscapejourney.com"
+        };
+
+        const policies = {
+            payment: [
+                "25% advance payment required at the time of booking",
+                "75% balance payment to be made 15 days before departure",
+                "Full payment required for bookings made within 15 days of departure",
+                "All payments are non-refundable and non-transferable"
+            ],
+            cancellation: [
+                "More than 30 days: 10% of total cost",
+                "15-30 days: 25% of total cost",
+                "7-15 days: 50% of total cost",
+                "Less than 7 days: 100% of total cost"
+            ],
+            terms: [
+                "Prices are subject to availability and confirmation",
+                "Package rates are per person on twin sharing basis",
+                "Additional charges may apply for peak season travel",
+                "Travel insurance is highly recommended"
+            ]
+        };
+
+        const parseExtractedText = (text) => {
+            const lines = text.split('\n').filter(line => line.trim().length > 0);
+            let parsedData = {
+                destination: 'Travel Destination',
+                duration: '5 Days 4 Nights',
+                pax: '2 Adults',
+                startDate: '',
+                endDate: '',
+                hotels: [],
+                inclusions: [],
+                exclusions: [],
+                itinerary: [],
+                baseCost: 0,
+                costBreakdown: []
+            };
+
+            let currentSection = '';
+            let dayCounter = 0;
+
+            lines.forEach(line => {
+                const lowerLine = line.toLowerCase();
+                if (lowerLine.includes('itinerary')) {
+                    currentSection = 'itinerary';
+                    return;
+                }
+                if (lowerLine.includes('inclusion')) {
+                    currentSection = 'inclusions';
+                    return;
+                }
+                if (lowerLine.includes('exclusion')) {
+                    currentSection = 'exclusions';
+                    return;
+                }
+                if (lowerLine.includes('hotel') || lowerLine.includes('accommodation')) {
+                    currentSection = 'hotels';
+                    return;
+                }
+
+                const destinationMatch = lowerLine.match(/(?:destination|location|to|for)[:\s]*(.*)/i);
+                if (destinationMatch && !parsedData.destination.includes('Travel')) parsedData.destination = destinationMatch[1].trim();
+
+                const durationMatch = lowerLine.match(/(\d+)\s*(?:days?|nights?)\s*(\d+)\s*(?:days?|nights?)/i) || lowerLine.match(/(\d+)\s*(?:days?|nights?)/i);
+                if (durationMatch && !parsedData.duration.includes('Days')) parsedData.duration = `${durationMatch[1]} Days ${durationMatch[1] - 1} Nights`;
+
+                const paxMatch = lowerLine.match(/(\d+)\s*(?:pax|persons?|adults?|people)/i);
+                if (paxMatch && !parsedData.pax.includes('Adults')) parsedData.pax = `${paxMatch[1]} Adults`;
+
+                const costMatch = line.match(/(?:rs\.?|₹|inr)\s*([\d,]+)/i);
+                if (costMatch) {
+                    const cost = parseInt(costMatch[1].replace(/,/g, ''));
+                    if (cost > 1000) parsedData.baseCost = cost;
+                }
+
+                if (currentSection === 'inclusions' || currentSection === 'exclusions') {
+                    const listMatch = line.match(/^\s*[-•*]\s*(.*)/);
+                    if (listMatch) {
+                        if (currentSection === 'inclusions') parsedData.inclusions.push(listMatch[1].trim());
+                        if (currentSection === 'exclusions') parsedData.exclusions.push(listMatch[1].trim());
+                    }
+                } else if (currentSection === 'itinerary') {
+                    const dayMatch = lowerLine.match(/day\s*(\d+)[:\s]*(.*)/);
+                    if (dayMatch) {
+                        dayCounter = parseInt(dayMatch[1]);
+                        parsedData.itinerary.push({
+                            day: dayCounter,
+                            title: dayMatch[2].trim() || 'Day Title',
+                            activities: []
+                        });
+                    } else if (dayCounter > 0 && line.trim()) {
+                        const lastDay = parsedData.itinerary[parsedData.itinerary.length - 1];
+                        if (lastDay) lastDay.activities.push(line.trim());
+                    }
+                } else if (currentSection === 'hotels') {
+                    const hotelMatch = line.match(/(?:hotel|resort|accommodation)[:\s]*(.*)/i);
+                    if (hotelMatch) {
+                        parsedData.hotels.push({
+                            name: hotelMatch[1].trim(),
+                            location: parsedData.destination,
+                            nights: 1,
+                            roomType: 'Standard Room'
+                        });
+                    }
+                }
             });
-            console.log(`Found hotel: ${hotelName}`);
-          }
-        }
-      }
 
-      // Detect sections based on keywords
-      if (keywords.inclusion.some(keyword => lowerLine.includes(keyword))) {
-        currentSection = 'inclusions';
-        console.log('Switched to inclusions section');
-        return;
-      }
-      if (keywords.exclusion.some(keyword => lowerLine.includes(keyword))) {
-        currentSection = 'exclusions';
-        console.log('Switched to exclusions section');
-        return;
-      }
-      if (keywords.itinerary.some(keyword => lowerLine.includes(keyword))) {
-        currentSection = 'itinerary';
-        console.log('Switched to itinerary section');
-        return;
-      }
+            if (parsedData.inclusions.length === 0) parsedData.inclusions = policies.terms;
+            if (parsedData.exclusions.length === 0) parsedData.exclusions = policies.terms;
+            if (parsedData.itinerary.length === 0) {
+                const days = parseInt(parsedData.duration.split(' ')[0]) || 5;
+                for (let i = 1; i <= days; i++) {
+                    parsedData.itinerary.push({ day: i, title: `Day ${i} in ${parsedData.destination}`, activities: [`Explore ${parsedData.destination}`] });
+                }
+            }
+            if (parsedData.hotels.length === 0) parsedData.hotels = [{ name: 'Standard Hotel', location: parsedData.destination, nights: 4, roomType: 'Standard' }];
+            if (parsedData.baseCost === 0) parsedData.baseCost = 50000;
 
-      // Add content to current section
-      if (currentSection === 'inclusions') {
-        if (trimmedLine.match(/^[-•*]\s*(.+)/) || trimmedLine.length > 10) {
-          const content = trimmedLine.replace(/^[-•*]\s*/, '').trim();
-          if (content && !parsedData.inclusions.includes(content)) {
-            parsedData.inclusions.push(content);
-            console.log(`Added inclusion: ${content}`);
-          }
-        }
-      }
-      
-      if (currentSection === 'exclusions') {
-        if (trimmedLine.match(/^[-•*]\s*(.+)/) || trimmedLine.length > 10) {
-          const content = trimmedLine.replace(/^[-•*]\s*/, '').trim();
-          if (content && !parsedData.exclusions.includes(content)) {
-            parsedData.exclusions.push(content);
-            console.log(`Added exclusion: ${content}`);
-          }
-        }
-      }
-      
-      // Parse itinerary - improved day detection
-      if (currentSection === 'itinerary') {
-        const dayMatch = trimmedLine.match(/(?:day\s*(\d+)|(\d+)(?:st|nd|rd|th)?\s*day)[:\s-]*(.+)/i);
-        if (dayMatch) {
-          currentDay = parseInt(dayMatch[1] || dayMatch[2]);
-          const title = (dayMatch[3] || '').trim() || `Day ${currentDay}`;
-          parsedData.itinerary.push({
-            day: currentDay,
-            title: title,
-            activities: []
-          });
-          console.log(`Found day ${currentDay}: ${title}`);
-        } else if (currentDay > 0 && trimmedLine.length > 5) {
-          const lastItinerary = parsedData.itinerary[parsedData.itinerary.length - 1];
-          if (lastItinerary && !trimmedLine.toLowerCase().includes('day')) {
-            const activity = trimmedLine.replace(/^[-•*]\s*/, '').trim();
-            lastItinerary.activities.push(activity);
-            console.log(`Added activity to day ${currentDay}: ${activity}`);
-          }
-        }
-      }
-    });
+            return parsedData;
+        };
 
-    console.log('=== END PARSING ===');
+        const handleFileUpload = async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
 
-    // Set intelligent defaults if not found
-    if (!parsedData.destination) {
-      // Try to extract from filename
-      if (uploadedFile && uploadedFile.name) {
-        const filename = uploadedFile.name.replace(/\.(pdf|docx?|txt)$/i, '');
-        parsedData.destination = filename.replace(/[_-]/g, ' ') || "Travel Destination";
-      } else {
-        parsedData.destination = "Travel Destination";
-      }
-    }
-    
-    if (!parsedData.duration) parsedData.duration = "5 Days 4 Nights";
-    if (!parsedData.pax) parsedData.pax = "2 Adults";
-    if (!parsedData.baseCost || parsedData.baseCost < 1000) parsedData.baseCost = 50000;
+            setUploadedFile(file);
+            setIsProcessing(true);
 
-    // Generate dates
-    const today = new Date();
-    const startDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const durationMatch = parsedData.duration.match(/(\d+)/);
-    const duration = durationMatch ? parseInt(durationMatch[1]) : 5;
-    const endDate = new Date(startDate.getTime() + (duration - 1) * 24 * 60 * 60 * 1000);
-    
-    parsedData.startDate = startDate.toISOString().split('T')[0];
-    parsedData.endDate = endDate.toISOString().split('T')[0];
+            try {
+                let extractedText = '';
+                const fileArrayBuffer = await file.arrayBuffer();
 
-    // Generate defaults only if nothing was found
-    if (parsedData.hotels.length === 0) {
-      parsedData.hotels = [
-        { 
-          name: `Premium Hotel - ${parsedData.destination}`, 
-          location: parsedData.destination, 
-          nights: Math.floor(duration/2), 
-          roomType: 'Deluxe Room' 
-        }
-      ];
-    }
+                if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                    const result = await mammoth.extractRawText({ arrayBuffer: fileArrayBuffer });
+                    extractedText = result.value;
+                } else if (file.type === 'application/pdf') {
+                    // Using PDF.js for browser-side PDF parsing
+                    const { getDocument } = window['pdfjs-dist/build/pdf.min.mjs'];
+                    const pdf = await getDocument(fileArrayBuffer).promise;
+                    const numPages = pdf.numPages;
+                    let fullText = '';
+                    for (let i = 1; i <= numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+                    }
+                    extractedText = fullText;
+                } else {
+                    alert('Please upload a PDF or Word document.');
+                    setIsProcessing(false);
+                    return;
+                }
 
-    if (parsedData.inclusions.length === 0) {
-      parsedData.inclusions = [
-        `Accommodation in ${parsedData.destination}`,
-        'Daily breakfast',
-        'Airport transfers',
-        'Local sightseeing as per itinerary',
-        'All applicable taxes'
-      ];
-    }
+                const parsedData = parseExtractedText(extractedText);
+                setExtractedData(parsedData);
+                setCurrentStep(2);
+            } catch (error) {
+                console.error('Error processing file:', error);
+                alert('Error processing file. Please ensure it is a valid PDF or Word document.');
+            }
 
-    if (parsedData.exclusions.length === 0) {
-      parsedData.exclusions = [
-        'Airfare (unless mentioned)',
-        'Personal expenses and tips',
-        'Travel insurance',
-        'Meals not mentioned in inclusions',
-        'Any services not specified in inclusions'
-      ];
-    }
+            setIsProcessing(false);
+        };
 
-    if (parsedData.itinerary.length === 0) {
-      const days = parseInt(parsedData.duration.match(/(\d+)/)[1]);
-      for (let i = 1; i <= days; i++) {
-        if (i === 1) {
-          parsedData.itinerary.push({
-            day: i,
-            title: `Arrival in ${parsedData.destination}`,
-            activities: ['Airport pickup and transfer to hotel', 'Hotel check-in', 'Welcome briefing', 'Rest and leisure time']
-          });
-        } else if (i === days) {
-          parsedData.itinerary.push({
-            day: i,
-            title: 'Departure',
-            activities: ['Hotel checkout', 'Last-minute shopping (if time permits)', 'Transfer to airport', 'Departure']
-          });
-        } else {
-          parsedData.itinerary.push({
-            day: i,
-            title: `Explore ${parsedData.destination}`,
-            activities: ['Breakfast at hotel', 'Full day sightseeing tour', 'Visit local attractions', 'Return to hotel']
-          });
-        }
-      }
-    }
+        const handleLogoUpload = (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => setCompanyLogo(e.target.result);
+                reader.readAsDataURL(file);
+            }
+        };
 
-    // Generate cost breakdown
-    parsedData.costBreakdown = [
-      { item: 'Accommodation', cost: Math.round(parsedData.baseCost * 0.35) },
-      { item: 'Transportation', cost: Math.round(parsedData.baseCost * 0.25) },
-      { item: 'Meals', cost: Math.round(parsedData.baseCost * 0.20) },
-      { item: 'Activities & Sightseeing', cost: Math.round(parsedData.baseCost * 0.15) },
-      { item: 'Taxes & Service Charges', cost: Math.round(parsedData.baseCost * 0.05) }
-    ];
+        const handleDataChange = (e, section, index, field) => {
+            const { value } = e.target;
+            setExtractedData(prevData => {
+                const newData = { ...prevData };
+                if (section === 'main') {
+                    newData[field] = value;
+                } else {
+                    newData[section] = newData[section].map((item, i) =>
+                        i === index ? { ...item, [field]: value } : item
+                    );
+                }
+                return newData;
+            });
+        };
 
-    return parsedData;
-  };
+        const calculateFinalCost = () => {
+            if (!extractedData) return 0;
+            return Math.round(extractedData.baseCost * (1 + markupPercentage / 100));
+        };
 
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+        const generateQuotation = () => {
+            setCurrentStep(3);
+            setTimeout(() => {
+                alert('Quotation PDF generated successfully! (In real implementation, this would download the PDF)');
+            }, 1000);
+        };
 
-    setUploadedFile(file);
-    setIsProcessing(true);
+        const QuotationPreview = () => {
+            if (!extractedData) return null;
 
-    try {
-      let extractedText = '';
-      
-      if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
-          file.name.toLowerCase().endsWith('.docx') || 
-          file.name.toLowerCase().endsWith('.doc')) {
-        
-        // Handle Word documents using mammoth
-        const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        extractedText = result.value;
-        
-      } else if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-        
-        // For PDF files, use the file reading API
-        try {
-          const fileContent = await window.fs.readFile(file.name, { encoding: 'utf8' });
-          extractedText = fileContent;
-        } catch (fsError) {
-          console.log('File system API not available, using alternative method');
-          
-          // Alternative: Use FileReader for PDF (limited extraction)
-          const reader = new FileReader();
-          const fileContent = await new Promise((resolve, reject) => {
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = reject;
-            reader.readAsText(file);
-          });
-          
-          // Basic PDF text extraction (this is limited - in production you'd need proper PDF parsing)
-          extractedText = fileContent;
-        }
-        
-      } else if (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')) {
-        
-        // Handle text files
-        const reader = new FileReader();
-        extractedText = await new Promise((resolve, reject) => {
-          reader.onload = (e) => resolve(e.target.result);
-          reader.onerror = reject;
-          reader.readAsText(file);
-        });
-        
-      } else {
-        alert('Please upload a PDF, Word document, or text file');
-        setIsProcessing(false);
-        return;
-      }
+            const finalCost = calculateFinalCost();
+            const markupAmount = finalCost - extractedData.baseCost;
 
-      // Clean and validate extracted text
-      if (!extractedText || extractedText.trim().length < 50) {
-        throw new Error('Could not extract sufficient text from the file. Please check the file format and try again.');
-      }
+            const formatDate = (dateString) => {
+                if (!dateString) return 'N/A';
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            };
 
-      console.log('=== EXTRACTED TEXT FROM YOUR FILE ===');
-      console.log(extractedText);
-      console.log('=== END EXTRACTED TEXT ===');
+            const today = new Date();
+            const startDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+            const duration = parseInt(extractedData.duration.match(/(\d+)/)[1]);
+            const endDate = new Date(startDate.getTime() + (duration - 1) * 24 * 60 * 60 * 1000);
 
-      // Parse the extracted text to create structured data
-      const parsedData = parseExtractedText(extractedText);
-      
-      console.log('=== PARSED DATA STRUCTURE ===');
-      console.log(parsedData);
-      console.log('=== END PARSED DATA ===');
+            const displayStartDate = isEditing ? extractedData.startDate : formatDate(startDate);
+            const displayEndDate = isEditing ? extractedData.endDate : formatDate(endDate);
 
-      setExtractedData(parsedData);
-      setCurrentStep(2);
-      
-    } catch (error) {
-      console.error('Error processing file:', error);
-      alert(`Error processing file: ${error.message}. Please check the file and try again.`);
-    }
+            return React.createElement('div', { className: 'bg-white rounded-2xl shadow-2xl overflow-hidden max-w-4xl mx-auto' },
+                React.createElement('div', { className: 'bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white p-8' },
+                    React.createElement('div', { className: 'flex items-center justify-between' },
+                        React.createElement('div', { className: 'flex items-center space-x-4' },
+                            companyLogo && React.createElement('img', { src: companyLogo, alt: 'Logo', className: 'h-16 w-16 rounded-lg bg-white/20 p-2' }),
+                            React.createElement('div', null,
+                                React.createElement('h1', { className: 'text-3xl font-bold' }, companyData.name),
+                                React.createElement('p', { className: 'text-blue-100 text-lg' }, companyData.tagline)
+                            )
+                        ),
+                        React.createElement('div', { className: 'text-right' },
+                            React.createElement('p', { className: 'text-sm opacity-90' }, 'Quotation Date'),
+                            React.createElement('p', { className: 'font-semibold' }, new Date().toLocaleDateString())
+                        )
+                    )
+                ),
+                React.createElement('div', { className: 'p-8' },
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-6 mb-8' },
+                        React.createElement('div', { className: 'bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl' },
+                            React.createElement('h2', { className: 'text-2xl font-bold text-gray-800 mb-4 flex items-center' },
+                                React.createElement(MapPin, { className: 'mr-2 text-blue-600' }),
+                                isEditing ? (
+                                    React.createElement('input', {
+                                        type: 'text',
+                                        value: extractedData.destination,
+                                        onChange: e => handleDataChange(e, 'main', null, 'destination'),
+                                        className: 'w-full bg-transparent border-b border-gray-400 focus:outline-none'
+                                    })
+                                ) : (
+                                    extractedData.destination
+                                )
+                            ),
+                            React.createElement('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
+                                React.createElement('div', { className: 'flex items-center' },
+                                    React.createElement(Calendar, { className: 'mr-2 text-gray-600 h-4 w-4' }),
+                                    isEditing ? (
+                                        React.createElement('input', {
+                                            type: 'text',
+                                            value: extractedData.duration,
+                                            onChange: e => handleDataChange(e, 'main', null, 'duration'),
+                                            className: 'w-full bg-transparent border-b border-gray-400 focus:outline-none'
+                                        })
+                                    ) : (
+                                        React.createElement('span', null, extractedData.duration)
+                                    )
+                                ),
+                                React.createElement('div', { className: 'flex items-center' },
+                                    React.createElement(Users, { className: 'mr-2 text-gray-600 h-4 w-4' }),
+                                    isEditing ? (
+                                        React.createElement('input', {
+                                            type: 'text',
+                                            value: extractedData.pax,
+                                            onChange: e => handleDataChange(e, 'main', null, 'pax'),
+                                            className: 'w-full bg-transparent border-b border-gray-400 focus:outline-none'
+                                        })
+                                    ) : (
+                                        React.createElement('span', null, extractedData.pax)
+                                    )
+                                ),
+                                React.createElement('div', { className: 'col-span-2 mt-2' },
+                                    React.createElement('span', { className: 'text-gray-600' }, 'Travel Dates: '),
+                                    React.createElement('span', { className: 'font-semibold' }, `${displayStartDate} to ${displayEndDate}`)
+                                )
+                            )
+                        ),
+                        React.createElement('div', { className: 'bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl' },
+                            React.createElement('h3', { className: 'text-xl font-bold text-gray-800 mb-4 flex items-center' },
+                                React.createElement(DollarSign, { className: 'mr-2 text-green-600' }),
+                                'Package Cost'
+                            ),
+                            React.createElement('div', { className: 'text-3xl font-bold text-green-600 mb-2' }, `₹${finalCost.toLocaleString()}`),
+                            React.createElement('p', { className: 'text-sm text-gray-600' }, 'Per person on twin sharing basis'),
+                            React.createElement('div', { className: 'mt-2 text-xs text-gray-500' }, `Base cost: ₹${extractedData.baseCost.toLocaleString()} + Markup: ₹${markupAmount.toLocaleString()}`)
+                        )
+                    ),
+                    React.createElement('div', { className: 'mb-8' },
+                        React.createElement('h3', { className: 'text-2xl font-bold text-gray-800 mb-6 flex items-center' },
+                            React.createElement(Calendar, { className: 'mr-3 text-blue-600' }),
+                            'Detailed Itinerary'
+                        ),
+                        React.createElement('div', { className: 'space-y-4' },
+                            extractedData.itinerary.map((day, dayIndex) =>
+                                React.createElement('div', { key: day.day, className: 'border-l-4 border-blue-500 pl-6 py-4 bg-gray-50 rounded-r-lg' },
+                                    React.createElement('h4', { className: 'font-bold text-lg text-gray-800' },
+                                        `Day ${day.day}: `,
+                                        isEditing ? (
+                                            React.createElement('input', {
+                                                type: 'text',
+                                                value: day.title,
+                                                onChange: e => handleDataChange(e, 'itinerary', dayIndex, 'title'),
+                                                className: 'w-full bg-transparent border-b border-gray-400 focus:outline-none'
+                                            })
+                                        ) : (
+                                            day.title
+                                        )
+                                    ),
+                                    React.createElement('ul', { className: 'mt-2 space-y-1' },
+                                        day.activities.map((activity, idx) =>
+                                            React.createElement('li', { key: idx, className: 'text-gray-700 flex items-start' },
+                                                React.createElement('div', { className: 'w-2 h-2 bg-blue-500 rounded-full mr-3 mt-2' }),
+                                                isEditing ? (
+                                                    React.createElement('input', {
+                                                        type: 'text',
+                                                        value: activity,
+                                                        onChange: e => {
+                                                            const newActivities = [...day.activities];
+                                                            newActivities[idx] = e.target.value;
+                                                            handleDataChange({ target: { value: newActivities } }, 'itinerary', dayIndex, 'activities');
+                                                        },
+                                                        className: 'w-full bg-transparent border-b border-gray-400 focus:outline-none'
+                                                    })
+                                                ) : (
+                                                    activity
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                    React.createElement('div', { className: 'mb-8' },
+                        React.createElement('h3', { className: 'text-2xl font-bold text-gray-800 mb-6' }, 'Accommodation'),
+                        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+                            extractedData.hotels.map((hotel, idx) =>
+                                React.createElement('div', { key: idx, className: 'bg-gradient-to-br from-orange-50 to-red-50 p-6 rounded-xl' },
+                                    React.createElement('h4', { className: 'font-bold text-lg text-gray-800' },
+                                        isEditing ? (
+                                            React.createElement('input', {
+                                                type: 'text',
+                                                value: hotel.name,
+                                                onChange: e => handleDataChange(e, 'hotels', idx, 'name'),
+                                                className: 'w-full bg-transparent border-b border-gray-400 focus:outline-none'
+                                            })
+                                        ) : (
+                                            hotel.name
+                                        )
+                                    ),
+                                    React.createElement('p', { className: 'text-gray-600' },
+                                        isEditing ? (
+                                            React.createElement('input', {
+                                                type: 'text',
+                                                value: hotel.location,
+                                                onChange: e => handleDataChange(e, 'hotels', idx, 'location'),
+                                                className: 'w-full bg-transparent border-b border-gray-400 focus:outline-none'
+                                            })
+                                        ) : (
+                                            hotel.location
+                                        )
+                                    ),
+                                    React.createElement('div', { className: 'mt-2 text-sm' },
+                                        React.createElement('span', { className: 'bg-orange-100 text-orange-800 px-2 py-1 rounded-full' }, `${hotel.nights} nights • ${hotel.roomType}`)
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-8 mb-8' },
+                        React.createElement('div', null,
+                            React.createElement('h3', { className: 'text-xl font-bold text-green-700 mb-4 flex items-center' },
+                                React.createElement(Check, { className: 'mr-2' }),
+                                'Package Inclusions'
+                            ),
+                            React.createElement('ul', { className: 'space-y-2' },
+                                extractedData.inclusions.map((item, idx) =>
+                                    React.createElement('li', { key: idx, className: 'flex items-start' },
+                                        React.createElement(Check, { className: 'mr-2 text-green-500 mt-0.5 h-4 w-4' }),
+                                        React.createElement('span', { className: 'text-gray-700' },
+                                            isEditing ? (
+                                                React.createElement('input', {
+                                                    type: 'text',
+                                                    value: item,
+                                                    onChange: e => handleDataChange(e, 'inclusions', idx, 'value'),
+                                                    className: 'w-full bg-transparent border-b border-gray-400 focus:outline-none'
+                                                })
+                                            ) : (
+                                                item
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+                        React.createElement('div', null,
+                            React.createElement('h3', { className: 'text-xl font-bold text-red-700 mb-4' }, 'Package Exclusions'),
+                            React.createElement('ul', { className: 'space-y-2' },
+                                extractedData.exclusions.map((item, idx) =>
+                                    React.createElement('li', { key: idx, className: 'flex items-start' },
+                                        React.createElement('div', { className: 'w-4 h-4 mr-2 mt-0.5 border-2 border-red-500 rounded' }),
+                                        React.createElement('span', { className: 'text-gray-700' },
+                                            isEditing ? (
+                                                React.createElement('input', {
+                                                    type: 'text',
+                                                    value: item,
+                                                    onChange: e => handleDataChange(e, 'exclusions', idx, 'value'),
+                                                    className: 'w-full bg-transparent border-b border-gray-400 focus:outline-none'
+                                                })
+                                            ) : (
+                                                item
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                    React.createElement('div', { className: 'bg-gray-50 p-8 rounded-2xl' },
+                        React.createElement('h3', { className: 'text-2xl font-bold text-gray-800 mb-6' }, 'Terms & Conditions'),
+                        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-8' },
+                            React.createElement('div', null,
+                                React.createElement('h4', { className: 'font-bold text-lg text-blue-700 mb-3' }, 'Payment Policy'),
+                                React.createElement('ul', { className: 'space-y-2 text-sm' },
+                                    policies.payment.map((item, idx) => React.createElement('li', { key: idx, className: 'text-gray-700' }, `• ${item}`))
+                                )
+                            ),
+                            React.createElement('div', null,
+                                React.createElement('h4', { className: 'font-bold text-lg text-red-700 mb-3' }, 'Cancellation Policy'),
+                                React.createElement('ul', { className: 'space-y-2 text-sm' },
+                                    policies.cancellation.map((item, idx) => React.createElement('li', { key: idx, className: 'text-gray-700' }, `• ${item}`))
+                                )
+                            )
+                        ),
+                        React.createElement('div', { className: 'mt-6' },
+                            React.createElement('h4', { className: 'font-bold text-lg text-gray-700 mb-3' }, 'Important Terms'),
+                            React.createElement('ul', { className: 'space-y-2 text-sm' },
+                                policies.terms.map((item, idx) => React.createElement('li', { key: idx, className: 'text-gray-700' }, `• ${item}`))
+                            )
+                        )
+                    ),
+                    React.createElement('div', { className: 'mt-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-2xl' },
+                        React.createElement('h3', { className: 'text-xl font-bold mb-4' }, 'Contact Information'),
+                        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4 text-sm' },
+                            React.createElement('div', null,
+                                React.createElement('p', null, React.createElement('strong', null, 'Address:'), ` ${companyData.address}`),
+                                React.createElement('p', null, React.createElement('strong', null, 'Phone:'), ` ${companyData.phone}`)
+                            ),
+                            React.createElement('div', null,
+                                React.createElement('p', null, React.createElement('strong', null, 'Email:'), ` ${companyData.email}`),
+                                React.createElement('p', null, React.createElement('strong', null, 'Website:'), ` ${companyData.website}`)
+                            )
+                        )
+                    )
+                )
+            );
+        };
 
-    setIsProcessing(false);
-  };
+        return React.createElement('div', { className: 'min-h-screen' },
+            React.createElement('div', { className: 'container mx-auto px-4 py-8' },
+                React.createElement('div', { className: 'text-center mb-12' },
+                    React.createElement('h1', { className: 'text-4xl font-bold text-gray-800 mb-4' }, 'DreamScape Journey'),
+                    React.createElement('h2', { className: 'text-2xl text-gray-600 mb-2' }, 'Quotation Automation System'),
+                    React.createElement('p', { className: 'text-gray-500' }, 'Transform DMC quotations into professional travel packages')
+                ),
+                React.createElement('div', { className: 'flex justify-center mb-12' },
+                    React.createElement('div', { className: 'flex space-x-4' },
+                        [
+                            { step: 1, label: "Upload & Configure", icon: Upload },
+                            { step: 2, label: "Review & Adjust", icon: Settings },
+                            { step: 3, label: "Generate PDF", icon: Download }
+                        ].map(({ step, label, icon: Icon }) =>
+                            React.createElement('div', {
+                                key: step,
+                                className: `flex items-center space-x-2 px-4 py-2 rounded-full ${currentStep >= step ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`
+                            },
+                                React.createElement(Icon, { size: 20 }),
+                                React.createElement('span', { className: 'font-medium' }, label)
+                            )
+                        )
+                    )
+                ),
+                currentStep === 1 && React.createElement('div', { className: 'max-w-2xl mx-auto space-y-8' },
+                    React.createElement('div', { className: 'bg-white p-8 rounded-2xl shadow-lg' },
+                        React.createElement('h3', { className: 'text-xl font-bold text-gray-800 mb-6' }, 'Company Logo'),
+                        React.createElement('div', {
+                            className: 'border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer',
+                            onClick: () => logoInputRef.current.click()
+                        },
+                            companyLogo ? (
+                                React.createElement('img', { src: companyLogo, alt: 'Company Logo', className: 'h-20 mx-auto mb-4' })
+                            ) : (
+                                React.createElement(Upload, { className: 'mx-auto h-12 w-12 text-gray-400 mb-4' })
+                            ),
+                            React.createElement('p', { className: 'text-gray-600' }, 'Click to upload your company logo'),
+                            React.createElement('input', {
+                                ref: logoInputRef,
+                                type: 'file',
+                                accept: 'image/*',
+                                onChange: handleLogoUpload,
+                                className: 'hidden'
+                            })
+                        )
+                    ),
+                    React.createElement('div', { className: 'bg-white p-8 rounded-2xl shadow-lg' },
+                        React.createElement('h3', { className: 'text-xl font-bold text-gray-800 mb-6' }, 'Upload DMC Quotation'),
+                        React.createElement('div', {
+                            className: 'border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer',
+                            onClick: () => fileInputRef.current.click()
+                        },
+                            uploadedFile ? (
+                                React.createElement('div', { className: 'flex items-center justify-center space-x-2' },
+                                    React.createElement(FileText, { className: 'h-8 w-8 text-blue-600' }),
+                                    React.createElement('span', { className: 'text-gray-700 font-medium' }, uploadedFile.name)
+                                )
+                            ) : (
+                                React.createElement(React.Fragment, null,
+                                    React.createElement(Upload, { className: 'mx-auto h-12 w-12 text-gray-400 mb-4' }),
+                                    React.createElement('p', { className: 'text-gray-600 mb-2' }, 'Drop your DMC quotation here or click to browse'),
+                                    React.createElement('p', { className: 'text-sm text-gray-500' }, 'Supports PDF and Word documents')
+                                )
+                            ),
+                            React.createElement('input', {
+                                ref: fileInputRef,
+                                type: 'file',
+                                accept: '.pdf,.doc,.docx',
+                                onChange: handleFileUpload,
+                                className: 'hidden'
+                            })
+                        )
+                    ),
+                    React.createElement('div', { className: 'bg-white p-8 rounded-2xl shadow-lg' },
+                        React.createElement('h3', { className: 'text-xl font-bold text-gray-800 mb-6' }, 'Markup Configuration'),
+                        React.createElement('div', { className: 'space-y-4' },
+                            React.createElement('div', null,
+                                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, `Markup Percentage: ${markupPercentage}%`),
+                                React.createElement('input', {
+                                    type: 'range',
+                                    min: '5',
+                                    max: '50',
+                                    value: markupPercentage,
+                                    onChange: (e) => setMarkupPercentage(Number(e.target.value)),
+                                    className: 'w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer'
+                                }),
+                                React.createElement('div', { className: 'flex justify-between text-xs text-gray-500 mt-1' },
+                                    React.createElement('span', null, '5%'),
+                                    React.createElement('span', null, '50%')
+                                )
+                            )
+                        )
+                    ),
+                    isProcessing && React.createElement('div', { className: 'text-center' },
+                        React.createElement('div', { className: 'animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto' }),
+                        React.createElement('p', { className: 'text-gray-600 mt-4' }, 'Processing your quotation...')
+                    )
+                ),
+                currentStep === 2 && React.createElement('div', { className: 'space-y-8' },
+                    React.createElement('div', { className: 'text-center' },
+                        React.createElement('h3', { className: 'text-2xl font-bold text-gray-800 mb-4' }, 'Review Your Quotation'),
+                        React.createElement('p', { className: 'text-gray-600' }, 'Make any final adjustments before generating the PDF')
+                    ),
+                    React.createElement('div', { className: 'flex justify-end space-x-2 mb-4' },
+                        React.createElement('button', {
+                            onClick: () => setIsEditing(!isEditing),
+                            className: 'px-4 py-2 bg-yellow-400 text-yellow-900 rounded-xl hover:bg-yellow-500 transition-colors flex items-center space-x-2'
+                        },
+                            React.createElement(Edit, { size: 20 }),
+                            React.createElement('span', null, isEditing ? 'Save Changes' : 'Edit Data')
+                        )
+                    ),
+                    React.createElement(QuotationPreview, null),
+                    React.createElement('div', { className: 'flex justify-center space-x-4' },
+                        React.createElement('button', {
+                            onClick: () => setCurrentStep(1),
+                            className: 'px-8 py-3 bg-gray-300 text-gray-700 rounded-xl hover:bg-gray-400 transition-colors flex items-center space-x-2'
+                        },
+                            React.createElement(Settings, { size: 20 }),
+                            React.createElement('span', null, 'Adjust Settings')
+                        ),
+                        React.createElement('button', {
+                            onClick: generateQuotation,
+                            className: 'px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center space-x-2'
+                        },
+                            React.createElement(Download, { size: 20 }),
+                            React.createElement('span', null, 'Generate PDF')
+                        )
+                    )
+                ),
+                currentStep === 3 && React.createElement('div', { className: 'text-center space-y-8' },
+                    React.createElement('div', { className: 'max-w-md mx-auto' },
+                        React.createElement('div', { className: 'bg-green-100 p-8 rounded-2xl' },
+                            React.createElement(Check, { className: 'mx-auto h-16 w-16 text-green-600 mb-4' }),
+                            React.createElement('h3', { className: 'text-2xl font-bold text-green-800 mb-2' }, 'Quotation Generated!'),
+                            React.createElement('p', { className: 'text-green-700' }, 'Your professional travel quotation is ready for download.')
+                        )
+                    ),
+                    React.createElement('div', { className: 'flex justify-center space-x-4' },
+                        React.createElement('button', {
+                            onClick: () => setCurrentStep(2),
+                            className: 'px-8 py-3 bg-gray-300 text-gray-700 rounded-xl hover:bg-gray-400 transition-colors flex items-center space-x-2'
+                        },
+                            React.createElement(Eye, { size: 20 }),
+                            React.createElement('span', null, 'Preview Again')
+                        ),
+                        React.createElement('button', {
+                            onClick: () => setCurrentStep(1),
+                            className: 'px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center space-x-2'
+                        },
+                            React.createElement(Upload, { size: 20 }),
+                            React.createElement('span', null, 'New Quotation')
+                        )
+                    )
+                )
+            )
+        );
+    };
 
-  const handleLogoUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => setCompanyLogo(e.target.result);
-      reader.readAsDataURL(file);
-    }
-  };
+    const domNode = document.getElementById('root');
+    const root = createRoot(domNode);
+    root.render(React.createElement(TravelQuotationSystem));
+</script>
 
-  const calculateFinalCost = () => {
-    if (!extractedData) return 0;
-    return Math.round(extractedData.baseCost * (1 + markupPercentage / 100));
-  };
-
-  const generateQuotation = () => {
-    setCurrentStep(3);
-    // In a real implementation, this would generate and download a PDF
-    setTimeout(() => {
-      alert('Quotation PDF generated successfully! (In real implementation, this would download the PDF)');
-    }, 1000);
-  };
-
-  const QuotationPreview = () => {
-    if (!extractedData) return null;
-
-    const finalCost = calculateFinalCost();
-    const markupAmount = finalCost - extractedData.baseCost;
-
-    return (
-      <div className="bg-white rounded-2xl shadow-2xl overflow-hidden max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white p-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              {companyLogo && (
-                <img src={companyLogo} alt="Logo" className="h-16 w-16 rounded-lg bg-white/20 p-2" />
-              )}
-              <div>
-                <h1 className="text-3xl font-bold">{companyData.name}</h1>
-                <p className="text-blue-100 text-lg">{companyData.tagline}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm opacity-90">Quotation Date</p>
-              <p className="font-semibold">{new Date().toLocaleDateString()}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Trip Overview */}
-        <div className="p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                <MapPin className="mr-2 text-blue-600" />
-                {extractedData.destination}
-              </h2>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center">
-                  <Calendar className="mr-2 text-gray-600 h-4 w-4" />
-                  <span>{extractedData.duration}</span>
-                </div>
-                <div className="flex items-center">
-                  <Users className="mr-2 text-gray-600 h-4 w-4" />
-                  <span>{extractedData.pax}</span>
-                </div>
-                <div className="col-span-2 mt-2">
-                  <span className="text-gray-600">Travel Dates: </span>
-                  <span className="font-semibold">{extractedData.startDate} to {extractedData.endDate}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl">
-              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <DollarSign className="mr-2 text-green-600" />
-                Package Cost
-              </h3>
-              <div className="text-3xl font-bold text-green-600 mb-2">₹{finalCost.toLocaleString()}</div>
-              <p className="text-sm text-gray-600">Per person on twin sharing basis</p>
-              <div className="mt-2 text-xs text-gray-500">
-                Base cost: ₹{extractedData.baseCost.toLocaleString()} + Markup: ₹{markupAmount.toLocaleString()}
-              </div>
-            </div>
-          </div>
-
-          {/* Itinerary */}
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-              <Calendar className="mr-3 text-blue-600" />
-              Detailed Itinerary
-            </h3>
-            <div className="space-y-4">
-              {extractedData.itinerary.map((day) => (
-                <div key={day.day} className="border-l-4 border-blue-500 pl-6 py-4 bg-gray-50 rounded-r-lg">
-                  <h4 className="font-bold text-lg text-gray-800">Day {day.day}: {day.title}</h4>
-                  <ul className="mt-2 space-y-1">
-                    {day.activities.map((activity, idx) => (
-                      <li key={idx} className="text-gray-700 flex items-center">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                        {activity}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Hotels */}
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">Accommodation</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {extractedData.hotels.map((hotel, idx) => (
-                <div key={idx} className="bg-gradient-to-br from-orange-50 to-red-50 p-6 rounded-xl">
-                  <h4 className="font-bold text-lg text-gray-800">{hotel.name}</h4>
-                  <p className="text-gray-600">{hotel.location}</p>
-                  <div className="mt-2 text-sm">
-                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
-                      {hotel.nights} nights • {hotel.roomType}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Inclusions & Exclusions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            <div>
-              <h3 className="text-xl font-bold text-green-700 mb-4 flex items-center">
-                <Check className="mr-2" />
-                Package Inclusions
-              </h3>
-              <ul className="space-y-2">
-                {extractedData.inclusions.map((item, idx) => (
-                  <li key={idx} className="flex items-start">
-                    <Check className="mr-2 text-green-500 mt-0.5 h-4 w-4" />
-                    <span className="text-gray-700">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-xl font-bold text-red-700 mb-4">Package Exclusions</h3>
-              <ul className="space-y-2">
-                {extractedData.exclusions.map((item, idx) => (
-                  <li key={idx} className="flex items-start">
-                    <div className="w-4 h-4 mr-2 mt-0.5 border-2 border-red-500 rounded"></div>
-                    <span className="text-gray-700">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Policies */}
-          <div className="bg-gray-50 p-8 rounded-2xl">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">Terms & Conditions</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <h4 className="font-bold text-lg text-blue-700 mb-3">Payment Policy</h4>
-                <ul className="space-y-2 text-sm">
-                  {policies.payment.map((item, idx) => (
-                    <li key={idx} className="text-gray-700">• {item}</li>
-                  ))}
-                </ul>
-              </div>
-              
-              <div>
-                <h4 className="font-bold text-lg text-red-700 mb-3">Cancellation Policy</h4>
-                <ul className="space-y-2 text-sm">
-                  {policies.cancellation.map((item, idx) => (
-                    <li key={idx} className="text-gray-700">• {item}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            
-            <div className="mt-6">
-              <h4 className="font-bold text-lg text-gray-700 mb-3">Important Terms</h4>
-              <ul className="space-y-2 text-sm">
-                {policies.terms.map((item, idx) => (
-                  <li key={idx} className="text-gray-700">• {item}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Contact Info */}
-          <div className="mt-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-2xl">
-            <h3 className="text-xl font-bold mb-4">Contact Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <p><strong>Address:</strong> {companyData.address}</p>
-                <p><strong>Phone:</strong> {companyData.phone}</p>
-              </div>
-              <div>
-                <p><strong>Email:</strong> {companyData.email}</p>
-                <p><strong>Website:</strong> {companyData.website}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-800 mb-4">DreamScape Journey</h1>
-          <h2 className="text-2xl text-gray-600 mb-2">Quotation Automation System</h2>
-          <p className="text-gray-500">Transform DMC quotations into professional travel packages</p>
-        </div>
-
-        {/* Progress Steps */}
-        <div className="flex justify-center mb-12">
-          <div className="flex space-x-4">
-            {[
-              { step: 1, label: "Upload & Configure", icon: Upload },
-              { step: 2, label: "Review & Adjust", icon: Settings },
-              { step: 3, label: "Generate PDF", icon: Download }
-            ].map(({ step, label, icon: Icon }) => (
-              <div key={step} className={`flex items-center space-x-2 px-4 py-2 rounded-full ${
-                currentStep >= step 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-200 text-gray-600'
-              }`}>
-                <Icon size={20} />
-                <span className="font-medium">{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Step 1: Upload & Configure */}
-        {currentStep === 1 && (
-          <div className="max-w-2xl mx-auto space-y-8">
-            {/* Company Logo Upload */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg">
-              <h3 className="text-xl font-bold text-gray-800 mb-6">Company Logo</h3>
-              <div 
-                className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
-                onClick={() => logoInputRef.current?.click()}
-              >
-                {companyLogo ? (
-                  <img src={companyLogo} alt="Company Logo" className="h-20 mx-auto mb-4" />
-                ) : (
-                  <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                )}
-                <p className="text-gray-600">Click to upload your company logo</p>
-                <input
-                  ref={logoInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="hidden"
-                />
-              </div>
-            </div>
-
-            {/* DMC File Upload */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg">
-              <h3 className="text-xl font-bold text-gray-800 mb-6">Upload DMC Quotation</h3>
-              <div 
-                className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {uploadedFile ? (
-                  <div className="flex items-center justify-center space-x-2">
-                    <FileText className="h-8 w-8 text-blue-600" />
-                    <span className="text-gray-700 font-medium">{uploadedFile.name}</span>
-                  </div>
-                ) : (
-                  <>
-                    <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <p className="text-gray-600 mb-2">Drop your DMC quotation here or click to browse</p>
-                    <p className="text-sm text-gray-500">Supports PDF and Word documents</p>
-                  </>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </div>
-            </div>
-
-            {/* Markup Settings */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg">
-              <h3 className="text-xl font-bold text-gray-800 mb-6">Markup Configuration</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Markup Percentage: {markupPercentage}%
-                  </label>
-                  <input
-                    type="range"
-                    min="5"
-                    max="50"
-                    value={markupPercentage}
-                    onChange={(e) => setMarkupPercentage(Number(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>5%</span>
-                    <span>50%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {isProcessing && (
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-gray-600 mt-4">Processing your quotation...</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 2: Review & Adjust */}
-        {currentStep === 2 && (
-          <div className="space-y-8">
-            <div className="text-center">
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Review Your Quotation</h3>
-              <p className="text-gray-600">Make any final adjustments before generating the PDF</p>
-            </div>
-
-            <QuotationPreview />
-
-            <div className="flex justify-center space-x-4">
-              <button
-                onClick={() => setCurrentStep(1)}
-                className="px-8 py-3 bg-gray-300 text-gray-700 rounded-xl hover:bg-gray-400 transition-colors flex items-center space-x-2"
-              >
-                <Settings size={20} />
-                <span>Adjust Settings</span>
-              </button>
-              <button
-                onClick={generateQuotation}
-                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center space-x-2"
-              >
-                <Download size={20} />
-                <span>Generate PDF</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Generate PDF */}
-        {currentStep === 3 && (
-          <div className="text-center space-y-8">
-            <div className="max-w-md mx-auto">
-              <div className="bg-green-100 p-8 rounded-2xl">
-                <Check className="mx-auto h-16 w-16 text-green-600 mb-4" />
-                <h3 className="text-2xl font-bold text-green-800 mb-2">Quotation Generated!</h3>
-                <p className="text-green-700">Your professional travel quotation is ready for download.</p>
-              </div>
-            </div>
-            
-            <div className="flex justify-center space-x-4">
-              <button
-                onClick={() => setCurrentStep(2)}
-                className="px-8 py-3 bg-gray-300 text-gray-700 rounded-xl hover:bg-gray-400 transition-colors flex items-center space-x-2"
-              >
-                <Eye size={20} />
-                <span>Preview Again</span>
-              </button>
-              <button
-                onClick={() => setCurrentStep(1)}
-                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center space-x-2"
-              >
-                <Upload size={20} />
-                <span>New Quotation</span>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default TravelQuotationSystem;
+</body>
+</html>
