@@ -1,349 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DreamScape Journey - AI-Powered Quotation System</title>
-    <style>
-        /* --- Your existing CSS (unchanged) --- */
-        /* I've kept all your styling intact */
-        /* (Your full CSS from the previous code remains here) */
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DreamScape Journey - AI Quotation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .step {
+      display: inline-block;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 25px;
+      background: #ddd;
+    }
+    .step.active { background: #6366f1; color: white; }
+    .hidden { display: none; }
+    .upload-zone {
+      border: 2px dashed #ccc;
+      border-radius: 10px;
+      text-align: center;
+      padding: 30px;
+      margin: 20px 0;
+      cursor: pointer;
+    }
+    .btn {
+      padding: 10px 20px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #111;
+    }
+    .quotation-preview {
+      background: #f3f4f6;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>DreamScape Journey</h1>
-            <h2>AI-Powered Quotation System</h2>
-            <p>Transform DMC quotations into professional travel packages</p>
-            <div class="ai-badge">🤖 Powered by AI PDF Reading</div>
-        </div>
+<div class="container">
+  <h1>DreamScape Journey</h1>
+  <p>AI-Powered Travel Quotation Generator</p>
 
-        <!-- Progress Steps -->
-        <div class="progress-steps">
-            <div class="step active" id="step1">
-                <span>📤</span>
-                <span>Upload & Configure</span>
-            </div>
-            <div class="step inactive" id="step2">
-                <span>⚙️</span>
-                <span>Review & Adjust</span>
-            </div>
-            <div class="step inactive" id="step3">
-                <span>📥</span>
-                <span>Generate PDF</span>
-            </div>
-        </div>
+  <!-- Steps -->
+  <div>
+    <span id="s1" class="step active">Upload</span>
+    <span id="s2" class="step">Preview</span>
+    <span id="s3" class="step">Done</span>
+  </div>
 
-        <!-- Step 1: Upload Section -->
-        <div id="uploadSection" class="upload-section">
-            <div class="ai-info">
-                <strong>🤖 AI-Powered Processing:</strong> Our system uses advanced AI to read and understand your PDF quotations, 
-                extracting destinations, costs, hotels, itineraries, and more with high accuracy.
-            </div>
-
-            <!-- Backend Configuration -->
-            <h3>Backend Configuration</h3>
-            <div style="margin-bottom: 2rem;">
-                <label for="backendUrl">Backend Server URL:</label>
-                <input type="url" id="backendUrl" value="http://localhost:3000" 
-                       style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #ccc; border-radius: 5px;">
-                <p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
-                    Make sure your Node.js backend is running on this URL
-                </p>
-            </div>
-
-            <!-- Company Logo Upload -->
-            <h3>Company Logo</h3>
-            <div class="upload-zone" onclick="document.getElementById('logoInput').click()">
-                <div style="font-size: 2rem; margin-bottom: 1rem;">🖼️</div>
-                <p>Click to upload your company logo</p>
-                <input type="file" id="logoInput" class="file-input" accept="image/*">
-            </div>
-            <div id="logoPreview" style="text-align: center; margin-top: 1rem;"></div>
-
-            <br><br>
-
-            <!-- DMC File Upload -->
-            <h3>Upload DMC Quotation</h3>
-            <div class="upload-zone" id="fileUploadZone" onclick="document.getElementById('fileInput').click()">
-                <div style="font-size: 2rem; margin-bottom: 1rem;">📄</div>
-                <p>Drop your DMC quotation here or click to browse</p>
-                <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">
-                    <strong>AI-Supported:</strong> PDF, Word documents, and Text files
-                </p>
-                <input type="file" id="fileInput" class="file-input" accept=".pdf,.doc,.docx,.txt">
-            </div>
-
-            <!-- Processing Status -->
-            <div id="processingStatus" class="processing-status">
-                <h4>🤖 AI Processing Your DMC Quotation...</h4>
-                <ul class="processing-steps" id="processingSteps">
-                    <li id="step-upload">📁 File uploaded</li>
-                    <li id="step-extract">📄 Extracting text from PDF</li>
-                    <li id="step-ai">🤖 AI analyzing content</li>
-                    <li id="step-parse">🔍 Parsing travel details</li>
-                    <li id="step-complete">✅ Processing complete</li>
-                </ul>
-            </div>
-
-            <div id="fileStatus" style="margin-top: 1rem;"></div>
-
-            <br><br>
-
-            <!-- Markup Settings -->
-            <h3>Markup Configuration</h3>
-            <label for="markupSlider">Markup Percentage: <span id="markupValue">15</span>%</label>
-            <input type="range" id="markupSlider" class="markup-slider" min="5" max="50" value="15">
-            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #666;">
-                <span>5%</span>
-                <span>50%</span>
-            </div>
-        </div>
-
-        <!-- Step 2: Preview Section -->
-        <div id="previewSection" class="hidden">
-            <div class="quotation-preview" id="quotationContent">
-                <!-- Quotation content will be generated here -->
-            </div>
-            <div style="text-align: center; margin: 2rem 0; gap: 1rem; display: flex; justify-content: center;">
-                <button class="btn btn-secondary" onclick="goToStep(1)">
-                    <span>⚙️</span> Adjust Settings
-                </button>
-                <button class="btn btn-primary" onclick="generatePDF()">
-                    <span>📥</span> Generate PDF
-                </button>
-            </div>
-        </div>
-
-        <!-- Step 3: Success Section -->
-        <div id="successSection" class="hidden">
-            <div class="success-message">
-                <h2>✅ AI-Processed Quotation Generated!</h2>
-                <p>Your professional travel quotation has been created using AI-powered content extraction.</p>
-            </div>
-            <div style="text-align: center; margin: 2rem 0; gap: 1rem; display: flex; justify-content: center;">
-                <button class="btn btn-secondary" onclick="goToStep(2)">
-                    <span>👁️</span> Preview Again
-                </button>
-                <button class="btn btn-primary" onclick="goToStep(1)">
-                    <span>📤</span> Process Another DMC
-                </button>
-            </div>
-        </div>
+  <!-- Step 1 -->
+  <div id="uploadSection">
+    <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+      📄 Click to upload DMC Quotation
+      <input type="file" id="fileInput" style="display:none">
     </div>
+    <label>Markup: <span id="markupValue">15</span>%</label>
+    <input type="range" min="5" max="50" value="15" id="markupSlider">
+  </div>
 
-    <script>
-        let currentStep = 1;
-        let extractedData = null;
-        let companyLogo = null;
-        let uploadedFile = null;
+  <!-- Step 2 -->
+  <div id="previewSection" class="hidden">
+    <div class="quotation-preview" id="quotationContent"></div>
+    <div style="text-align:center">
+      <button class="btn-secondary btn" onclick="goToStep(1)">⬅ Adjust</button>
+      <button class="btn" onclick="goToStep(3)">Generate PDF</button>
+    </div>
+  </div>
 
-        // Company data
-        const companyData = {
-            name: "DreamScape Journey",
-            tagline: "Creating Unforgettable Travel Experiences",
-            address: "123 Travel Street, Hyderabad, Telangana 500001",
-            phone: "+91 9876543210",
-            email: "info@dreamscapejourney.com",
-            website: "www.dreamscapejourney.com"
-        };
+  <!-- Step 3 -->
+  <div id="successSection" class="hidden" style="text-align:center">
+    <h2>✅ Quotation Generated!</h2>
+    <button class="btn" onclick="goToStep(1)">Process Another</button>
+  </div>
+</div>
 
-        document.addEventListener('DOMContentLoaded', setupEventListeners);
+<script>
+let extractedData = null;
+document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+document.getElementById('markupSlider').addEventListener('input', e => {
+  document.getElementById('markupValue').textContent = e.target.value;
+  if(extractedData) renderQuotation();
+});
 
-        function setupEventListeners() {
-            document.getElementById('logoInput').addEventListener('change', handleLogoUpload);
-            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-            document.getElementById('markupSlider').addEventListener('input', (e) => {
-                document.getElementById('markupValue').textContent = e.target.value;
-                if (extractedData) renderQuotation(); // live update preview
-            });
-        }
+function goToStep(step) {
+  document.getElementById('s1').classList.toggle('active', step===1);
+  document.getElementById('s2').classList.toggle('active', step===2);
+  document.getElementById('s3').classList.toggle('active', step===3);
+  document.getElementById('uploadSection').classList.toggle('hidden', step!==1);
+  document.getElementById('previewSection').classList.toggle('hidden', step!==2);
+  document.getElementById('successSection').classList.toggle('hidden', step!==3);
+  if(step===2) renderQuotation();
+}
 
-        function handleLogoUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    companyLogo = e.target.result;
-                    document.getElementById('logoPreview').innerHTML =
-                        `<img src="${companyLogo}" alt="Company Logo" style="height: 80px; border-radius: 10px;">`;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if(!file) return;
 
-        async function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+  // Simulate AI Extraction (replace with real parsing later)
+  extractedData = {
+    destination: "Bali, Indonesia",
+    duration: "5 Nights / 6 Days",
+    pax: "2 Adults",
+    baseCost: 45000
+  };
+  goToStep(2);
+}
 
-            uploadedFile = file;
-            showProcessingStatus();
+function calculateFinalCost() {
+  if(!extractedData) return 0;
+  const markup = parseInt(document.getElementById('markupSlider').value);
+  return Math.round(extractedData.baseCost * (1 + markup/100));
+}
 
-            try {
-                const backendUrl = document.getElementById('backendUrl').value;
-                updateProcessingStep('step-upload', 'completed');
-                updateProcessingStep('step-extract', 'current');
-
-                const formData = new FormData();
-                formData.append('dmcFile', file);
-
-                const response = await fetch(`${backendUrl}/api/process-dmc`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Server error');
-                }
-
-                updateProcessingStep('step-extract', 'completed');
-                updateProcessingStep('step-ai', 'current');
-
-                const result = await response.json();
-                updateProcessingStep('step-ai', 'completed');
-                updateProcessingStep('step-parse', 'current');
-
-                if (result.success && result.data) {
-                    extractedData = result.data;
-
-                    updateProcessingStep('step-parse', 'completed');
-                    updateProcessingStep('step-complete', 'current');
-
-                    console.log('AI-Extracted Data:', extractedData);
-
-                    showSuccessMessage(`AI successfully extracted data from ${file.name}`);
-
-                    setTimeout(() => {
-                        updateProcessingStep('step-complete', 'completed');
-                        hideProcessingStatus();
-                        goToStep(2);
-                    }, 1000);
-
-                } else {
-                    throw new Error('Invalid response from server');
-                }
-
-            } catch (error) {
-                console.error('Error processing file:', error);
-                hideProcessingStatus();
-                showErrorMessage(`Error processing file: ${error.message}. Make sure your backend server is running.`);
-            }
-        }
-
-        function showProcessingStatus() {
-            document.getElementById('processingStatus').classList.add('show');
-            document.getElementById('fileUploadZone').classList.add('processing');
-            document.querySelectorAll('.processing-steps li')
-                .forEach(step => step.classList.remove('completed', 'current'));
-        }
-
-        function hideProcessingStatus() {
-            document.getElementById('processingStatus').classList.remove('show');
-            document.getElementById('fileUploadZone').classList.remove('processing');
-        }
-
-        function updateProcessingStep(stepId, status) {
-            const step = document.getElementById(stepId);
-            if (step) {
-                step.classList.remove('completed', 'current');
-                if (status) {
-                    step.classList.add(status);
-                }
-            }
-        }
-
-        function goToStep(step) {
-            document.querySelectorAll('.step').forEach((el, index) => {
-                if (index + 1 <= step) {
-                    el.classList.remove('inactive');
-                    el.classList.add('active');
-                } else {
-                    el.classList.remove('active');
-                    el.classList.add('inactive');
-                }
-            });
-
-            document.getElementById('uploadSection').classList.toggle('hidden', step !== 1);
-            document.getElementById('previewSection').classList.toggle('hidden', step !== 2);
-            document.getElementById('successSection').classList.toggle('hidden', step !== 3);
-
-            currentStep = step;
-            if (step === 2 && extractedData) renderQuotation();
-        }
-
-        function calculateFinalCost() {
-            if (!extractedData || !extractedData.baseCost || extractedData.baseCost <= 0) return 0;
-            const markupPercentage = parseInt(document.getElementById('markupSlider').value);
-            return Math.round(extractedData.baseCost * (1 + markupPercentage / 100));
-        }
-
-        function renderQuotation() {
-            if (!extractedData) return;
-
-            const finalCost = calculateFinalCost();
-            const markupAmount = finalCost - (extractedData.baseCost || 0);
-            const markupPercentage = parseInt(document.getElementById('markupSlider').value);
-
-            const quotationHTML = `
-                <div class="quote-header">
-                    <div class="company-info">
-                        ${companyLogo ? `<img src="${companyLogo}" alt="Logo" style="height: 60px; margin-bottom: 1rem; border-radius: 10px;">` : ''}
-                        <h1>${companyData.name}</h1>
-                        <p>${companyData.tagline}</p>
-                    </div>
-                    <div class="quote-date">
-                        <p style="opacity: 0.8;">Quotation Date</p>
-                        <p style="font-weight: bold;">${new Date().toLocaleDateString()}</p>
-                        <div style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;">
-                            🤖 AI-Processed from ${uploadedFile ? uploadedFile.name : 'DMC File'}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="quote-body">
-                    <div class="trip-overview">
-                        <div class="overview-card">
-                            <h2>📍 ${extractedData.destination || 'Destination Not Specified'}</h2>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.9rem;">
-                                <div>📅 ${extractedData.duration || 'Duration Not Specified'}</div>
-                                <div>👥 ${extractedData.pax || 'Pax Not Specified'}</div>
-                            </div>
-                        </div>
-
-                        <div class="overview-card cost-card">
-                            <h3>💰 Package Cost</h3>
-                            ${finalCost > 0 ? `
-                                <div style="font-size: 2rem; font-weight: bold; color: #22c55e;">₹${finalCost.toLocaleString()}</div>
-                                <p>Per person on twin sharing basis</p>
-                                <div style="font-size: 0.8rem; color: #888;">
-                                    AI-Extracted Base: ₹${extractedData.baseCost.toLocaleString()} + Markup (${markupPercentage}%): ₹${markupAmount.toLocaleString()}
-                                </div>
-                            ` : `
-                                <div style="font-size: 1.2rem; font-weight: bold; color: #ef4444;">Cost Not Found in DMC</div>
-                                <p>AI could not extract pricing from the document</p>
-                            `}
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.getElementById('quotationContent').innerHTML = quotationHTML;
-        }
-
-        function showErrorMessage(message) {
-            document.getElementById('fileStatus').innerHTML = `<div class="error-message">${message}</div>`;
-        }
-
-        function showSuccessMessage(message) {
-            document.getElementById('fileStatus').innerHTML = `<div class="success-message">${message}</div>`;
-        }
-
-        function generatePDF() {
-            // Future enhancement: implement server-side PDF generation
-            goToStep(3);
-        }
-    </script>
+function renderQuotation() {
+  const finalCost = calculateFinalCost();
+  document.getElementById('quotationContent').innerHTML = `
+    <h2>📍 ${extractedData.destination}</h2>
+    <p>📅 ${extractedData.duration}</p>
+    <p>👥 ${extractedData.pax}</p>
+    <h3>💰 Final Price: ₹${finalCost.toLocaleString()}</h3>
+    <small>Base: ₹${extractedData.baseCost.toLocaleString()} + Markup</small>
+  `;
+}
+</script>
 </body>
 </html>
