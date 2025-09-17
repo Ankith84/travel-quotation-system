@@ -1,148 +1,869 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DreamScape Journey - AI Quotation</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f9f9f9;
-      margin: 0;
-      padding: 20px;
-    }
-    .container {
-      max-width: 900px;
-      margin: auto;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-      padding: 20px;
-    }
-    .step {
-      display: inline-block;
-      padding: 10px 20px;
-      margin: 5px;
-      border-radius: 25px;
-      background: #ddd;
-    }
-    .step.active { background: #6366f1; color: white; }
-    .hidden { display: none; }
-    .upload-zone {
-      border: 2px dashed #ccc;
-      border-radius: 10px;
-      text-align: center;
-      padding: 30px;
-      margin: 20px 0;
-      cursor: pointer;
-    }
-    .btn {
-      padding: 10px 20px;
-      background: #6366f1;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      margin: 5px;
-    }
-    .btn-secondary {
-      background: #e5e7eb;
-      color: #111;
-    }
-    .quotation-preview {
-      background: #f3f4f6;
-      border-radius: 10px;
-      padding: 20px;
-      margin-top: 20px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DreamScape Journey - AI Quotation System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .ai-badge {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            display: inline-block;
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 3rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .step.active {
+            background: rgba(255, 255, 255, 1);
+            color: #667eea;
+        }
+
+        .step.inactive {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-zone {
+            border: 2px dashed #ccc;
+            border-radius: 15px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9f9f9;
+        }
+
+        .upload-zone:hover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+
+        .upload-zone.processing {
+            border-color: #fbbf24;
+            background: #fef3c7;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .processing-status {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .processing-status.show {
+            display: block;
+        }
+
+        .processing-steps li {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .processing-steps li.completed {
+            color: #22c55e;
+        }
+
+        .processing-steps li.current {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        .quotation-preview {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+            margin: 2rem 0;
+        }
+
+        .quote-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .quote-body {
+            padding: 2rem;
+        }
+
+        .trip-overview {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .overview-card {
+            padding: 2rem;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #f8f9ff, #e8f0fe);
+        }
+
+        .cost-card {
+            background: linear-gradient(135deg, #f0fff4, #e6fffa);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        .success-message {
+            background: #dcfce7;
+            border: 1px solid #86efac;
+            color: #166534;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        .ai-info {
+            background: #ede9fe;
+            border: 1px solid #c4b5fd;
+            color: #5b21b6;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .trip-overview,
+            .quote-header {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-  <h1>DreamScape Journey</h1>
-  <p>AI-Powered Travel Quotation Generator</p>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>DreamScape Journey</h1>
+            <h2>AI-Powered Quotation System</h2>
+            <p>Transform DMC quotations into professional travel packages</p>
+            <div class="ai-badge">🤖 Powered by OpenAI & Vercel</div>
+        </div>
 
-  <!-- Steps -->
-  <div>
-    <span id="s1" class="step active">Upload</span>
-    <span id="s2" class="step">Preview</span>
-    <span id="s3" class="step">Done</span>
-  </div>
+        <!-- Progress Steps -->
+        <div class="progress-steps">
+            <div class="step active" id="step1">
+                <span>📤</span>
+                <span>Upload DMC</span>
+            </div>
+            <div class="step inactive" id="step2">
+                <span>🤖</span>
+                <span>AI Processing</span>
+            </div>
+            <div class="step inactive" id="step3">
+                <span>📋</span>
+                <span>Review Quotation</span>
+            </div>
+            <div class="step inactive" id="step4">
+                <span>📥</span>
+                <span>Download PDF</span>
+            </div>
+        </div>
 
-  <!-- Step 1 -->
-  <div id="uploadSection">
-    <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-      📄 Click to upload DMC Quotation
-      <input type="file" id="fileInput" style="display:none">
+        <!-- Step 1: Upload Section -->
+        <div id="uploadSection" class="upload-section">
+            <div class="ai-info">
+                <strong>🤖 How it works:</strong> Upload your DMC quotation → AI extracts all details → Generate professional branded quotation → Download as PDF
+            </div>
+
+            <!-- Company Logo Upload -->
+            <h3>Company Logo (Optional)</h3>
+            <div class="upload-zone" onclick="document.getElementById('logoInput').click()" style="padding: 2rem;">
+                <div style="font-size: 2rem; margin-bottom: 1rem;">🖼️</div>
+                <p>Click to upload your company logo</p>
+                <input type="file" id="logoInput" class="file-input" accept="image/*">
+            </div>
+            <div id="logoPreview" style="text-align: center; margin-top: 1rem;"></div>
+
+            <br><br>
+
+            <!-- DMC File Upload -->
+            <h3>Upload DMC Quotation</h3>
+            <div class="upload-zone" id="fileUploadZone" onclick="document.getElementById('fileInput').click()">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
+                <p><strong>Drop your DMC file here or click to browse</strong></p>
+                <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">
+                    Supports: PDF, Word Documents (.docx), Text Files (.txt)
+                </p>
+                <p style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">
+                    Maximum file size: 10MB
+                </p>
+                <input type="file" id="fileInput" class="file-input" accept=".pdf,.doc,.docx,.txt">
+            </div>
+
+            <!-- Processing Status -->
+            <div id="processingStatus" class="processing-status">
+                <h4>🤖 AI Processing Your DMC Quotation...</h4>
+                <ul class="processing-steps" id="processingSteps" style="list-style: none; padding: 0;">
+                    <li id="step-upload">📁 File uploaded successfully</li>
+                    <li id="step-extract">📄 Extracting text from document</li>
+                    <li id="step-ai">🤖 AI analyzing content and extracting details</li>
+                    <li id="step-parse">🔍 Parsing travel information</li>
+                    <li id="step-complete">✅ Processing complete</li>
+                </ul>
+            </div>
+
+            <div id="fileStatus" style="margin-top: 1rem;"></div>
+
+            <!-- Markup Settings -->
+            <div style="margin-top: 2rem;">
+                <h3>Markup Configuration</h3>
+                <label for="markupSlider">Markup Percentage: <span id="markupValue">15</span>%</label>
+                <input type="range" id="markupSlider" style="width: 100%; margin: 1rem 0;" min="5" max="50" value="15">
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #666;">
+                    <span>5%</span>
+                    <span>50%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2-4: Combined Preview and Download Section -->
+        <div id="previewSection" class="hidden">
+            <div class="quotation-preview" id="quotationContent">
+                <!-- Quotation content will be generated here -->
+            </div>
+            <div style="text-align: center; margin: 2rem 0; gap: 1rem; display: flex; justify-content: center; flex-wrap: wrap;">
+                <button class="btn btn-secondary" onclick="goToStep(1)" style="background: #f0f0f0; color: #333;">
+                    <span>⚙️</span> Upload New DMC
+                </button>
+                <button class="btn btn-primary" onclick="downloadPDF()">
+                    <span>📥</span> Download PDF
+                </button>
+            </div>
+        </div>
     </div>
-    <label>Markup: <span id="markupValue">15</span>%</label>
-    <input type="range" min="5" max="50" value="15" id="markupSlider">
-  </div>
 
-  <!-- Step 2 -->
-  <div id="previewSection" class="hidden">
-    <div class="quotation-preview" id="quotationContent"></div>
-    <div style="text-align:center">
-      <button class="btn-secondary btn" onclick="goToStep(1)">⬅ Adjust</button>
-      <button class="btn" onclick="goToStep(3)">Generate PDF</button>
-    </div>
-  </div>
+    <script>
+        // CONFIGURATION - Update this with your deployed Vercel URL
+        const BACKEND_URL = window.location.origin; // Uses same domain (works for Vercel)
+        // For custom domain, change to: const BACKEND_URL = 'https://your-app.vercel.app';
 
-  <!-- Step 3 -->
-  <div id="successSection" class="hidden" style="text-align:center">
-    <h2>✅ Quotation Generated!</h2>
-    <button class="btn" onclick="goToStep(1)">Process Another</button>
-  </div>
-</div>
+        let currentStep = 1;
+        let extractedData = null;
+        let companyLogo = null;
+        let uploadedFile = null;
 
-<script>
-let extractedData = null;
-document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-document.getElementById('markupSlider').addEventListener('input', e => {
-  document.getElementById('markupValue').textContent = e.target.value;
-  if(extractedData) renderQuotation();
-});
+        // Company data - CUSTOMIZE THIS FOR YOUR BUSINESS
+        const companyData = {
+            name: "DreamScape Journey",
+            tagline: "Creating Unforgettable Travel Experiences",
+            address: "123 Travel Street, Hyderabad, Telangana 500001",
+            phone: "+91 9876543210",
+            email: "info@dreamscapejourney.com",
+            website: "www.dreamscapejourney.com"
+        };
 
-function goToStep(step) {
-  document.getElementById('s1').classList.toggle('active', step===1);
-  document.getElementById('s2').classList.toggle('active', step===2);
-  document.getElementById('s3').classList.toggle('active', step===3);
-  document.getElementById('uploadSection').classList.toggle('hidden', step!==1);
-  document.getElementById('previewSection').classList.toggle('hidden', step!==2);
-  document.getElementById('successSection').classList.toggle('hidden', step!==3);
-  if(step===2) renderQuotation();
-}
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+        });
 
-function handleFileUpload(event) {
-  const file = event.target.files[0];
-  if(!file) return;
+        function setupEventListeners() {
+            document.getElementById('logoInput').addEventListener('change', handleLogoUpload);
+            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+            document.getElementById('markupSlider').addEventListener('input', function(e) {
+                document.getElementById('markupValue').textContent = e.target.value;
+            });
 
-  // Simulate AI Extraction (replace with real parsing later)
-  extractedData = {
-    destination: "Bali, Indonesia",
-    duration: "5 Nights / 6 Days",
-    pax: "2 Adults",
-    baseCost: 45000
-  };
-  goToStep(2);
-}
+            // Drag and drop
+            const uploadZone = document.getElementById('fileUploadZone');
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.style.borderColor = '#667eea';
+                uploadZone.style.background = '#f0f0ff';
+            });
+            uploadZone.addEventListener('dragleave', (e) => {
+                uploadZone.style.borderColor = '#ccc';
+                uploadZone.style.background = '#f9f9f9';
+            });
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.style.borderColor = '#ccc';
+                uploadZone.style.background = '#f9f9f9';
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    document.getElementById('fileInput').files = files;
+                    handleFileUpload({ target: { files: files } });
+                }
+            });
+        }
 
-function calculateFinalCost() {
-  if(!extractedData) return 0;
-  const markup = parseInt(document.getElementById('markupSlider').value);
-  return Math.round(extractedData.baseCost * (1 + markup/100));
-}
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                    showErrorMessage('Logo file too large. Please choose a file under 5MB.');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    companyLogo = e.target.result;
+                    document.getElementById('logoPreview').innerHTML = 
+                        `<img src="${companyLogo}" alt="Company Logo" style="height: 80px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
 
-function renderQuotation() {
-  const finalCost = calculateFinalCost();
-  document.getElementById('quotationContent').innerHTML = `
-    <h2>📍 ${extractedData.destination}</h2>
-    <p>📅 ${extractedData.duration}</p>
-    <p>👥 ${extractedData.pax}</p>
-    <h3>💰 Final Price: ₹${finalCost.toLocaleString()}</h3>
-    <small>Base: ₹${extractedData.baseCost.toLocaleString()} + Markup</small>
-  `;
-}
-</script>
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validate file size and type
+            if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                showErrorMessage('File too large. Please choose a file under 10MB.');
+                return;
+            }
+
+            const allowedTypes = [
+                'application/pdf',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/msword',
+                'text/plain'
+            ];
+
+            if (!allowedTypes.includes(file.type) && 
+                !file.name.toLowerCase().match(/\.(pdf|docx?|txt)$/)) {
+                showErrorMessage('Unsupported file type. Please upload PDF, Word, or Text files.');
+                return;
+            }
+
+            uploadedFile = file;
+            showProcessingStatus();
+            goToStep(2);
+
+            try {
+                // Update processing status
+                updateProcessingStep('step-upload', 'completed');
+                updateProcessingStep('step-extract', 'current');
+
+                // Create form data
+                const formData = new FormData();
+                formData.append('dmcFile', file);
+
+                // Send to serverless function for AI processing
+                const response = await fetch(`${BACKEND_URL}/api/process-dmc`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Server error: ${response.status}`);
+                }
+
+                updateProcessingStep('step-extract', 'completed');
+                updateProcessingStep('step-ai', 'current');
+
+                const result = await response.json();
+                
+                updateProcessingStep('step-ai', 'completed');
+                updateProcessingStep('step-parse', 'current');
+
+                if (result.success && result.data) {
+                    extractedData = result.data;
+                    
+                    updateProcessingStep('step-parse', 'completed');
+                    updateProcessingStep('step-complete', 'current');
+
+                    console.log('AI-Extracted Data:', extractedData);
+
+                    showSuccessMessage(`🤖 AI successfully processed ${file.name}!`);
+                    
+                    setTimeout(() => {
+                        updateProcessingStep('step-complete', 'completed');
+                        hideProcessingStatus();
+                        goToStep(3);
+                    }, 1500);
+
+                } else {
+                    throw new Error('Invalid response from AI processing service');
+                }
+
+            } catch (error) {
+                console.error('Error processing file:', error);
+                hideProcessingStatus();
+                goToStep(1);
+                
+                if (error.message.includes('fetch')) {
+                    showErrorMessage(`❌ Connection failed. Please check if the backend is deployed correctly. Error: ${error.message}`);
+                } else {
+                    showErrorMessage(`❌ Processing failed: ${error.message}`);
+                }
+            }
+        }
+
+        function showProcessingStatus() {
+            document.getElementById('processingStatus').classList.add('show');
+            document.getElementById('fileUploadZone').classList.add('processing');
+            
+            // Reset all steps
+            const steps = document.querySelectorAll('.processing-steps li');
+            steps.forEach(step => {
+                step.classList.remove('completed', 'current');
+            });
+        }
+
+        function hideProcessingStatus() {
+            document.getElementById('processingStatus').classList.remove('show');
+            document.getElementById('fileUploadZone').classList.remove('processing');
+        }
+
+        function updateProcessingStep(stepId, status) {
+            const step = document.getElementById(stepId);
+            if (step) {
+                step.classList.remove('completed', 'current');
+                if (status) {
+                    step.classList.add(status);
+                }
+            }
+        }
+
+        function showErrorMessage(message) {
+            const statusDiv = document.getElementById('fileStatus');
+            statusDiv.innerHTML = `<div class="error-message">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 10000);
+        }
+
+        function showSuccessMessage(message) {
+            const statusDiv = document.getElementById('fileStatus');
+            statusDiv.innerHTML = `<div class="success-message">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        function goToStep(step) {
+            // Update step indicators
+            document.querySelectorAll('.step').forEach((el, index) => {
+                if (index + 1 <= step) {
+                    el.classList.remove('inactive');
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                    el.classList.add('inactive');
+                }
+            });
+
+            // Show/hide sections
+            document.getElementById('uploadSection').classList.toggle('hidden', step !== 1);
+            document.getElementById('previewSection').classList.toggle('hidden', step < 3);
+
+            currentStep = step;
+
+            if (step >= 3 && extractedData) {
+                renderQuotation();
+            }
+        }
+
+        function calculateFinalCost() {
+            if (!extractedData || !extractedData.baseCost || extractedData.baseCost <= 0) {
+                return 0;
+            }
+            const markupPercentage = parseInt(document.getElementById('markupSlider').value);
+            return Math.round(extractedData.baseCost * (1 + markupPercentage / 100));
+        }
+
+        function renderQuotation() {
+            if (!extractedData) return;
+
+            const finalCost = calculateFinalCost();
+            const markupAmount = finalCost - (extractedData.baseCost || 0);
+            const markupPercentage = parseInt(document.getElementById('markupSlider').value);
+
+            const quotationHTML = `
+                <!-- Header -->
+                <div class="quote-header">
+                    <div style="flex: 1;">
+                        ${companyLogo ? `<img src="${companyLogo}" alt="Logo" style="height: 60px; margin-bottom: 1rem; border-radius: 10px;">` : ''}
+                        <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">${companyData.name}</h1>
+                        <p style="opacity: 0.9;">${companyData.tagline}</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <p style="opacity: 0.8; font-size: 0.9rem;">Quotation Date</p>
+                        <p style="font-weight: bold; margin-bottom: 0.5rem;">${new Date().toLocaleDateString()}</p>
+                        <div style="font-size: 0.8rem; opacity: 0.7; background: rgba(255,255,255,0.1); padding: 0.25rem 0.75rem; border-radius: 10px;">
+                            🤖 AI-Processed: ${uploadedFile ? uploadedFile.name : 'DMC File'}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="quote-body">
+                    <!-- Trip Overview -->
+                    <div class="trip-overview">
+                        <div class="overview-card">
+                            <h2 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; font-size: 1.5rem;">
+                                <span>📍</span>
+                                ${extractedData.destination || 'Destination Not Specified'}
+                            </h2>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.9rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span>📅</span>
+                                    <span>${extractedData.duration || 'Duration Not Specified'}</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span>👥</span>
+                                    <span>${extractedData.pax || 'Pax Not Specified'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="overview-card cost-card">
+                            <h3 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; font-size: 1.3rem;">
+                                <span>💰</span>
+                                Package Cost
+                            </h3>
+                            ${finalCost > 0 ? `
+                                <div style="font-size: 2.5rem; font-weight: bold; color: #22c55e; margin-bottom: 0.5rem;">
+                                    ₹${finalCost.toLocaleString()}
+                                </div>
+                                <p style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">Per person on twin sharing basis</p>
+                                <div style="font-size: 0.8rem; color: #888; background: #f0f9ff; padding: 0.5rem; border-radius: 5px;">
+                                    <strong>AI-Extracted Base:</strong> ₹${extractedData.baseCost.toLocaleString()}<br>
+                                    <strong>Your Markup (${markupPercentage}%):</strong> ₹${markupAmount.toLocaleString()}
+                                </div>
+                            ` : `
+                                <div style="font-size: 1.2rem; font-weight: bold; color: #ef4444; margin-bottom: 0.5rem;">
+                                    Cost Not Found in DMC
+                                </div>
+                                <p style="font-size: 0.9rem; color: #666;">AI could not extract pricing information from the document</p>
+                            `}
+                        </div>
+                    </div>
+
+                    <!-- AI Processing Summary -->
+                    <div style="background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border: 1px solid #bae6fd; border-radius: 15px; padding: 1.5rem; margin-bottom: 2rem;">
+                        <h4 style="margin-bottom: 1rem; color: #0369a1;">🤖 AI Processing Summary</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.9rem;">
+                            <div>✅ <strong>Destination:</strong> ${extractedData.destination && extractedData.destination !== 'Not specified' ? 'Found' : 'Not found'}</div>
+                            <div>✅ <strong>Duration:</strong> ${extractedData.duration && extractedData.duration !== 'Not specified' ? 'Found' : 'Not found'}</div>
+                            <div>✅ <strong>Pricing:</strong> ${extractedData.baseCost > 0 ? 'Found' : 'Not found'}</div>
+                            <div>✅ <strong>Hotels:</strong> ${extractedData.hotels && extractedData.hotels.length > 0 ? extractedData.hotels.length + ' found' : 'Not found'}</div>
+                            <div>✅ <strong>Inclusions:</strong> ${extractedData.inclusions && extractedData.inclusions.length > 0 ? extractedData.inclusions.length + ' items' : 'Not found'}</div>
+                            <div>✅ <strong>Itinerary:</strong> ${extractedData.itinerary && extractedData.itinerary.length > 0 ? extractedData.itinerary.length + ' days' : 'Not found'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Itinerary Section -->
+                    ${extractedData.itinerary && extractedData.itinerary.length > 0 ? `
+                        <div class="section-title">
+                            <span>📅</span>
+                            Detailed Itinerary (AI-Extracted)
+                        </div>
+                        <div style="margin-bottom: 3rem;">
+                            ${extractedData.itinerary.map(day => `
+                                <div style="border-left: 4px solid #667eea; padding-left: 1.5rem; margin-bottom: 2rem; background: #f8f9ff; border-radius: 0 15px 15px 0; padding: 1.5rem;">
+                                    <div style="font-size: 1.25rem; font-weight: bold; color: #333; margin-bottom: 1rem;">
+                                        Day ${day.day}: ${day.title}
+                                    </div>
+                                    <ul style="list-style: none; padding: 0;">
+                                        ${day.activities && day.activities.length > 0 ? day.activities.map(activity => `
+                                            <li style="display: flex; align-items: flex-start; margin-bottom: 0.75rem; color: #555;">
+                                                <div style="width: 8px; height: 8px; background: #667eea; border-radius: 50%; margin-right: 1rem; margin-top: 0.5rem; flex-shrink: 0;"></div>
+                                                <span>${activity}</span>
+                                            </li>
+                                        `).join('') : '<li style="color: #888; font-style: italic;">No activities specified</li>'}
+                                    </ul>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : `
+                        <div class="section-title">
+                            <span>📅</span>
+                            Itinerary Information
+                        </div>
+                        <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 15px; padding: 2rem; text-align: center; margin-bottom: 3rem;">
+                            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">📋 Detailed itinerary not found in DMC document</p>
+                            <p style="font-size: 0.9rem; color: #666;">Please refer to the original DMC quotation for the complete travel schedule</p>
+                        </div>
+                    `}
+
+                    <!-- Hotels Section -->
+                    ${extractedData.hotels && extractedData.hotels.length > 0 ? `
+                        <div class="section-title">
+                            <span>🏨</span>
+                            Accommodation Details (AI-Extracted)
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+                            ${extractedData.hotels.map(hotel => `
+                                <div style="padding: 1.5rem; border-radius: 15px; background: linear-gradient(135deg, #fff8f0, #ffedd5); border: 1px solid #fed7aa;">
+                                    <h4 style="font-weight: bold; margin-bottom: 0.5rem; color: #9a3412;">${hotel.name}</h4>
+                                    <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">${hotel.location}</p>
+                                    <div style="font-size: 0.9rem;">
+                                        <span style="background: #ffedd5; color: #9a3412; padding: 0.25rem 0.75rem; border-radius: 15px; font-weight: 500;">
+                                            ${hotel.nights} nights • ${hotel.roomType}
+                                        </span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : `
+                        <div class="section-title">
+                            <span>🏨</span>
+                            Accommodation Information
+                        </div>
+                        <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 15px; padding: 2rem; text-align: center; margin-bottom: 3rem;">
+                            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">🏨 Hotel details not found in DMC document</p>
+                            <p style="font-size: 0.9rem; color: #666;">Please refer to the original DMC quotation for accommodation details</p>
+                        </div>
+                    `}
+
+                    <!-- Inclusions & Exclusions -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-bottom: 3rem;">
+                        <div>
+                            <div class="section-title" style="color: #22c55e;">
+                                <span>✅</span>
+                                Package Inclusions ${extractedData.inclusions && extractedData.inclusions.length > 0 ? '(AI-Extracted)' : ''}
+                            </div>
+                            ${extractedData.inclusions && extractedData.inclusions.length > 0 ? 
+                                extractedData.inclusions.map(item => `
+                                    <div style="display: flex; align-items: flex-start; margin-bottom: 0.75rem; color: #555;">
+                                        <span style="color: #22c55e; margin-right: 0.75rem; margin-top: 0.25rem; font-weight: bold;">✓</span>
+                                        <span>${item}</span>
+                                    </div>
+                                `).join('') 
+                                : 
+                                `<div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 10px; padding: 1.5rem;">
+                                    <p style="margin-bottom: 0.5rem;">📋 Inclusions not clearly specified in DMC</p>
+                                    <p style="font-size: 0.9rem; color: #666;">Please check the original quotation for included services</p>
+                                </div>`
+                            }
+                        </div>
+                        
+                        <div>
+                            <div class="section-title" style="color: #ef4444;">
+                                <span>❌</span>
+                                Package Exclusions ${extractedData.exclusions && extractedData.exclusions.length > 0 ? '(AI-Extracted)' : ''}
+                            </div>
+                            ${extractedData.exclusions && extractedData.exclusions.length > 0 ? 
+                                extractedData.exclusions.map(item => `
+                                    <div style="display: flex; align-items: flex-start; margin-bottom: 0.75rem; color: #555;">
+                                        <span style="color: #ef4444; margin-right: 0.75rem; margin-top: 0.25rem; font-weight: bold;">⊗</span>
+                                        <span>${item}</span>
+                                    </div>
+                                `).join('') 
+                                : 
+                                `<div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 10px; padding: 1.5rem;">
+                                    <p style="margin-bottom: 0.5rem;">📋 Exclusions not clearly specified in DMC</p>
+                                    <p style="font-size: 0.9rem; color: #666;">Please check the original quotation for excluded services</p>
+                                </div>`
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Terms & Policies -->
+                    <div style="background: #f8f9fa; border-radius: 15px; padding: 2rem; margin-bottom: 2rem;">
+                        <div class="section-title">
+                            <span>📋</span>
+                            Terms & Conditions
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                            <div>
+                                <h4 style="color: #667eea; margin-bottom: 1rem; font-size: 1.1rem;">💳 Payment Policy</h4>
+                                <div style="font-size: 0.9rem; line-height: 1.6;">
+                                    • 25% advance payment required at booking<br>
+                                    • 75% balance payment 15 days before departure<br>
+                                    • Full payment for bookings within 15 days<br>
+                                    • All payments are non-refundable
+                                </div>
+                            </div>
+                            <div>
+                                <h4 style="color: #ef4444; margin-bottom: 1rem; font-size: 1.1rem;">🚫 Cancellation Policy</h4>
+                                <div style="font-size: 0.9rem; line-height: 1.6;">
+                                    • More than 30 days: 10% of total cost<br>
+                                    • 15-30 days: 25% of total cost<br>
+                                    • 7-15 days: 50% of total cost<br>
+                                    • Less than 7 days: 100% of total cost
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 style="color: #666; margin-bottom: 1rem; font-size: 1.1rem;">⚠️ Important Terms</h4>
+                            <div style="font-size: 0.9rem; line-height: 1.6; color: #555;">
+                                • Prices subject to availability and confirmation • Package rates per person on twin sharing • 
+                                Additional charges may apply for peak season • Travel insurance highly recommended • 
+                                Subject to terms and conditions of service providers
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information -->
+                    <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 2rem; border-radius: 15px;">
+                        <h3 style="margin-bottom: 1.5rem; font-size: 1.3rem;">📞 Contact Information</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                            <div>
+                                <p style="margin-bottom: 0.5rem;"><strong>📍 Address:</strong> ${companyData.address}</p>
+                                <p><strong>📞 Phone:</strong> ${companyData.phone}</p>
+                            </div>
+                            <div>
+                                <p style="margin-bottom: 0.5rem;"><strong>✉️ Email:</strong> ${companyData.email}</p>
+                                <p><strong>🌐 Website:</strong> ${companyData.website}</p>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2); text-align: center; font-size: 0.9rem; opacity: 0.8;">
+                            Generated on ${new Date().toLocaleString()} • Powered by AI Technology
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('quotationContent').innerHTML = quotationHTML;
+            goToStep(4); // Move to final step
+        }
+
+        function downloadPDF() {
+            // For now, show a simple print dialog
+            // In production, you'd integrate a PDF generation library
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '<span>⏳</span> Preparing PDF...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                window.print(); // Opens browser print dialog where user can save as PDF
+                
+                button.innerHTML = originalText;
+                button.disabled = false;
+                
+                // Show success message
+                showSuccessMessage('🎉 PDF generation initiated! Use your browser\'s print dialog to save as PDF.');
+            }, 1000);
+        }
+
+        // Print styles for PDF generation
+        const printStyles = `
+            <style media="print">
+                body * { visibility: hidden; }
+                #quotationContent, #quotationContent * { visibility: visible; }
+                #quotationContent { position: absolute; left: 0; top: 0; width: 100%; }
+                .btn, .progress-steps { display: none !important; }
+                @page { margin: 0.5in; }
+            </style>
+        `;
+        document.head.insertAdjacentHTML('beforeend', printStyles);
+    </script>
 </body>
 </html>
